@@ -1,0 +1,62 @@
+From af6e676e26fe0d824bd6816aeedf0fa3ffa673b2 Mon Sep 17 00:00:00 2001
+From: Jaro Marval <jampgold@gmail.com>
+Date: Wed, 23 Sep 2026 14:54:28 -0500
+Subject: [PATCH] server: pass the escaped buffer, not escape_json()'s length,
+ to %s
+
+Since 1e92d52 escape_json() returns the number of bytes written, but the
+/api/rtsp and /api/onvif handlers still passed its return value straight to
+sprintf's %s, so any authenticated GET of those endpoints dereferenced a small
+integer and crashed divinus with SIGSEGV. Opening the web UI triggers it.
+
+Escape into the buffers first and pass the buffers.
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+---
+ src/server.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/src/server.c b/src/server.c
+index bb55d1e..5c2b7d5 100644
+--- a/src/server.c
++++ b/src/server.c
+@@ -1227,6 +1227,8 @@ void respond_request(http_request_t *req) {
+         }
+         char esc_user[sizeof(app_config.rtsp_auth_user) * 6 + 1];
+         char esc_codec[sizeof(app_config.rtsp_audio_codec) * 6 + 1];
++        escape_json(esc_user, app_config.rtsp_auth_user, sizeof(esc_user));
++        escape_json(esc_codec, app_config.rtsp_audio_codec, sizeof(esc_codec));
+         respLen = sprintf(response,
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: application/json;charset=UTF-8\r\n"
+@@ -1235,9 +1237,7 @@ void respond_request(http_request_t *req) {
+             "{\"enable\":%s,\"enable_auth\":%s,\"port\":%d,\"auth_user\":\"%s\",\"audio_codec\":\"%s\","
+             "\"note\":\"port and codec changes apply after restart\"}",
+             app_config.rtsp_enable ? "true" : "false", app_config.rtsp_enable_auth ? "true" : "false",
+-            app_config.rtsp_port,
+-            escape_json(esc_user, app_config.rtsp_auth_user, sizeof(esc_user)),
+-            escape_json(esc_codec, app_config.rtsp_audio_codec, sizeof(esc_codec)));
++            app_config.rtsp_port, esc_user, esc_codec);
+         send_and_close(req->clntFd, response, respLen);
+         return;
+     }
+@@ -1260,6 +1260,7 @@ void respond_request(http_request_t *req) {
+             }
+         }
+         char esc_onvif_user[sizeof(app_config.onvif_auth_user) * 6 + 1];
++        escape_json(esc_onvif_user, app_config.onvif_auth_user, sizeof(esc_onvif_user));
+         respLen = sprintf(response,
+             "HTTP/1.1 200 OK\r\n"
+             "Content-Type: application/json;charset=UTF-8\r\n"
+@@ -1267,7 +1268,7 @@ void respond_request(http_request_t *req) {
+             "\r\n"
+             "{\"enable\":%s,\"enable_auth\":%s,\"auth_user\":\"%s\",\"note\":\"applies after restart\"}",
+             app_config.onvif_enable ? "true" : "false", app_config.onvif_enable_auth ? "true" : "false",
+-            escape_json(esc_onvif_user, app_config.onvif_auth_user, sizeof(esc_onvif_user)));
++            esc_onvif_user);
+         send_and_close(req->clntFd, response, respLen);
+         return;
+     }
+-- 
+2.50.1 (Apple Git-155)
+
