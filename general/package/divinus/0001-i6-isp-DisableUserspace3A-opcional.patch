@@ -1,0 +1,17 @@
+--- a/src/hal/star/i6_isp.h	2026-09-23 11:52:36
++++ b/src/hal/star/i6_isp.h	2026-09-23 11:52:36
+@@ -36,9 +36,11 @@
+     if (!(isp_lib->handle = dlopen("libmi_isp.so", RTLD_LAZY | RTLD_GLOBAL)))
+         HAL_ERROR("i6_isp", "Failed to load library!\nError: %s\n", dlerror());
+ 
+-    if (!(isp_lib->fnDisableUserspace3A = (int(*)(int channel))
+-        hal_symbol_load("i6_isp", isp_lib->handle, "MI_ISP_DisableUserspace3A")))
+-        return EXIT_FAILURE;
++    // Las libmi_isp.so de infinity6 que distribuye OpenIPC (SSC323/325/327) no
++    // exportan esta función, y divinus no la llama en ningún sitio: su ausencia
++    // no debe impedir que arranque el SDK.
++    isp_lib->fnDisableUserspace3A = (int(*)(int channel))
++        hal_symbol_load("i6_isp", isp_lib->handle, "MI_ISP_DisableUserspace3A");
+ 
+     if (!(isp_lib->fnEnableUserspace3A = (int(*)(int channel, i6_isp_p3a *params))
+         hal_symbol_load("i6_isp", isp_lib->handle, "MI_ISP_CUS3A_Enable")))
