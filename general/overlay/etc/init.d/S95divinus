@@ -28,6 +28,8 @@ start() {
 	fi
 	echo -n "Starting divinus: "
 	rm -f "$STOPPED"
+	# musl only honours the zone set in /etc/TZ through the environment
+	export TZ=$(cat /etc/TZ 2>/dev/null)
 	(
 		/usr/bin/divinus 2>&1 | logger -t divinus
 		[ -e "$STOPPED" ] && exit

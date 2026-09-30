@@ -10,12 +10,22 @@ set_gpio() {
 # MacAddress= in its .dat file. That path is compiled into the driver, so the
 # edited copy lives in /tmp and is bind-mounted over it: editing it in place
 # would copy the .dat up into the overlay, where it would shadow the one a
-# later firmware ships.
+# later firmware ships. A camera whose FACTORY lost that record gets a locally
+# administered address of its own, kept in the environment, rather than the
+# one the .dat ships, which every such camera would share.
 if [ "$1" = "mt7601u-ssc325-chuangmi-ipc017" ]; then
 	set_gpio 14 1
 	dat=/etc/mediatek/MT7601USTA.dat
 	factory=$(awk -F: '/"(factory|FACTORY)"/ {print $1}' /proc/mtd)
 	mac=$([ -n "$factory" ] && tr '\0' '\n' < "/dev/$factory" | sed -n 's/^mac=//p')
+	if [ -z "$mac" ]; then
+		mac=$(fw_printenv -n wlanaddr 2>/dev/null)
+		if [ -z "$mac" ]; then
+			mac=$(od -An -tx1 -N5 /dev/urandom | tr -d ' \n' |
+				sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\)$/02:\1:\2:\3:\4:\5/')
+			fw_setenv wlanaddr "$mac"
+		fi
+	fi
 	if [ -n "$mac" ] && ! grep -qx "MacAddress=$mac" $dat; then
 		sed '/^MacAddress=/d' $dat > /tmp/MT7601USTA.dat
 		echo "MacAddress=$mac" >> /tmp/MT7601USTA.dat
