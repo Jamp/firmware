@@ -4,8 +4,16 @@
 # so do the streams. Until then it stays down and says how to set it up.
 #
 # Its log goes to syslog: /tmp is RAM and divinus logs every request.
+#
+# The watchdog in divinus.yaml covers a hung divinus, but this SoC's driver
+# disarms when the device is closed, so it does nothing if divinus dies. A
+# crash can also leave SDK memory reserved until the next boot, which starves
+# the encoder: when divinus exits without being stopped here, reboot. Not in
+# the first minutes after boot, so a divinus that cannot start does not loop
+# the camera and SSH stays reachable to fix it.
 
 CONF=/etc/divinus.yaml
+STOPPED=/var/run/divinus.stopped
 
 claimed() {
 	[ -n "$(awk -F: '$1 == "root" { print $2; exit }' /etc/shadow 2>/dev/null)" ] &&
@@ -19,12 +27,23 @@ start() {
 		return 0
 	fi
 	echo -n "Starting divinus: "
-	(/usr/bin/divinus 2>&1 | logger -t divinus) &
+	rm -f "$STOPPED"
+	(
+		/usr/bin/divinus 2>&1 | logger -t divinus
+		[ -e "$STOPPED" ] && exit
+		if [ "$(cut -d. -f1 /proc/uptime)" -lt 180 ]; then
+			logger -t divinus "exited right after boot, not streaming"
+		else
+			logger -t divinus "exited unexpectedly, rebooting"
+			reboot
+		fi
+	) &
 	echo "OK"
 }
 
 stop() {
 	echo -n "Stopping divinus: "
+	touch "$STOPPED"
 	killall -q divinus
 	# The SDK allows one client: wait until it has let go of the hardware
 	n=0
