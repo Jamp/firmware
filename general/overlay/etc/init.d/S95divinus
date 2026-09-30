@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# divinus streams only once the camera has an owner: root has a password and
+# so do the streams. Until then it stays down and says how to set it up.
+#
+# Its log goes to syslog: /tmp is RAM and divinus logs every request.
+
+CONF=/etc/divinus.yaml
+
+claimed() {
+	[ -n "$(awk -F: '$1 == "root" { print $2; exit }' /etc/shadow 2>/dev/null)" ] &&
+		[ -n "$(yaml-cli -i "$CONF" -g .rtsp.auth_pass 2>/dev/null)" ]
+}
+
+start() {
+	if ! claimed; then
+		echo "divinus: not set up, log in as root and run divinus-passwd"
+		logger -t divinus "not set up, not streaming"
+		return 0
+	fi
+	echo -n "Starting divinus: "
+	(/usr/bin/divinus 2>&1 | logger -t divinus) &
+	echo "OK"
+}
+
+stop() {
+	echo -n "Stopping divinus: "
+	killall -q divinus
+	# The SDK allows one client: wait until it has let go of the hardware
+	n=0
+	while pidof divinus > /dev/null && [ "$n" -lt 10 ]; do
+		sleep 1
+		n=$((n + 1))
+	done
+	echo "OK"
+}
+
+case "$1" in
+	start)
+		start
+		;;
+
+	stop)
+		stop
+		;;
+
+	restart)
+		stop
+		start
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

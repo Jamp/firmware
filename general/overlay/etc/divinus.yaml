@@ -1,0 +1,81 @@
+system:
+  sensor_config: /etc/sensors/gc2053.bin
+  web_port: 80
+  web_enable_auth: true
+  web_auth_user: admin
+  web_auth_pass:
+  web_auth_skiplocal: false
+  web_enable_static: false
+  isp_thread_stack_size: 16384
+  venc_stream_thread_stack_size: 16384
+  web_server_thread_stack_size: 65536
+  time_format: "%Y-%m-%d %H:%M:%S"
+  watchdog: 30
+
+isp:
+  mirror: false
+  flip: false
+  antiflicker: 0
+
+osd:
+  enable: false
+
+mdns:
+  enable: true
+
+onvif:
+  enable: true
+  enable_auth: true
+  auth_user: admin
+  auth_pass:
+
+rtsp:
+  enable: true
+  enable_auth: true
+  auth_user: admin
+  auth_pass:
+  port: 554
+
+record:
+  enable: false
+
+stream:
+  enable: false
+
+night_mode:
+  enable: true
+  ir_cut_pin1: 78
+  ir_cut_pin2: 79
+  ir_led_pin: 52
+  pin_switch_delay_us: 150
+  night_gain: 8
+  day_gain: 2
+  night_hold_s: 15
+  day_hold_s: 60
+
+motion_detect:
+  enable: true
+  sensitivity: 5
+  hold_s: 10
+
+http_post:
+  enable: false
+
+audio:
+  enable: false
+
+mp4:
+  enable: true
+  codec: H264
+  mode: CBR
+  width: 1920
+  height: 1080
+  fps: 20
+  gop: 40
+  bitrate: 2048
+
+jpeg:
+  enable: false
+
+mjpeg:
+  enable: false

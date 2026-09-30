@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Sets the user and password that divinus asks for on its web interface, RTSP
+# and ONVIF, and starts streaming.
+#
+#   divinus-passwd                  asks for them
+#   divinus-passwd <user> <file>    reads the password from the first line of
+#                                   <file>, so it never shows up in ps
+#
+# divinus reads its YAML with a simple parser, so the password is limited to
+# characters that need no quoting there.
+
+CONF=/etc/divinus.yaml
+
+fail() {
+	echo "$*" >&2
+	exit 1
+}
+
+valid() {
+	case "$1" in
+	*[!A-Za-z0-9._@%+=!-]*) return 1 ;;
+	esac
+	[ "${#1}" -ge 8 ] && [ "${#1}" -le 63 ]
+}
+
+if [ $# -eq 2 ]; then
+	user=$1
+	pass=$(head -n 1 "$2") || fail "Can't read $2"
+else
+	printf "User [admin]: "
+	read -r user
+	stty -echo 2> /dev/null
+	printf "Password: "
+	read -r pass
+	echo
+	printf "Password again: "
+	read -r again
+	echo
+	stty echo 2> /dev/null
+	[ "$pass" = "$again" ] || fail "The passwords do not match."
+fi
+
+user=${user:-admin}
+case "$user" in
+*[!A-Za-z0-9._-]* | "") fail "The user may only contain letters, digits, '.', '_' and '-'." ;;
+esac
+valid "$pass" || fail "The password needs 8 to 63 characters among letters, digits and ._@%+=!-"
+
+for key in .system.web_auth .rtsp.auth .onvif.auth; do
+	yaml-cli -i "$CONF" -s "${key}_user" "$user" &&
+		yaml-cli -i "$CONF" -s "${key}_pass" "$pass" || fail "Can't write $CONF"
+done
+chmod 600 "$CONF"
+
+/etc/init.d/S95divinus restart

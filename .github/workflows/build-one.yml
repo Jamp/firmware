@@ -116,6 +116,7 @@ jobs:
         env:
           BUILD_ID:  ${{ needs.resolve.outputs.tag_name }}
           BUILD_SHA: ${{ needs.resolve.outputs.ref }}
+          BUILD_PLATFORM: ${{ inputs.platform }}
         run: |
           export GIT_HASH=$(git rev-parse --short ${GITHUB_SHA})
           export GIT_BRANCH=${GITHUB_REF_NAME}
@@ -143,7 +144,9 @@ jobs:
 
           NORFW=$(find output/images -name openipc*nor*)
           if [ -e ${NORFW} ]; then
-            echo NORFW=${NORFW} >> ${GITHUB_ENV}
+            # sysupgrade trusts <BUILD_PLATFORM>-nor.tgz, the name builder gives it
+            cp ${NORFW} output/images/${{ inputs.platform }}-nor.tgz
+            echo NORFW=output/images/${{ inputs.platform }}-nor.tgz >> ${GITHUB_ENV}
           fi
 
           NANDFW=$(find output/images -name openipc*nand*)
@@ -157,8 +160,9 @@ jobs:
       - name: Upload firmware
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.resolve.outputs.tag_name }}
+          tag_name: ipc017-divinus
           prerelease: true
+          overwrite_files: true
           body: |
             sha=${{ needs.resolve.outputs.ref }}
             short=${{ needs.resolve.outputs.short_sha }}

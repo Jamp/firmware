@@ -5,17 +5,7 @@
 #
 # Set custom upgrade url
 #
-fw_setenv upgrade 'https://github.com/OpenIPC/builder/releases/download/latest/ssc325_lite_chuangmi-ipc017-nor.tgz'
-#
-#
-# Set custom majestic settings
-#
-cli -s .nightMode.irCutPin1 78
-cli -s .nightMode.irCutPin2 79
-cli -s .nightMode.backlightPin 52
-cli -s .nightMode.lightMonitor true
-cli -s .nightMode.autoNightGain 8
-#
+fw_setenv upgrade 'https://github.com/Jamp/firmware/releases/download/ipc017-divinus/ssc325_lite_chuangmi-ipc017-divinus-nor.tgz'
 #
 # Set wlan device and credentials if need
 #
