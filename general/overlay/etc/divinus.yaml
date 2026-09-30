@@ -2,7 +2,7 @@ system:
   sensor_config: /etc/sensors/gc2053.bin
   web_port: 80
   web_enable_auth: true
-  web_auth_user: admin
+  web_auth_user: viewer
   web_auth_pass:
   web_auth_skiplocal: false
   web_enable_static: false
@@ -26,13 +26,13 @@ mdns:
 onvif:
   enable: true
   enable_auth: true
-  auth_user: admin
+  auth_user: viewer
   auth_pass:
 
 rtsp:
   enable: true
   enable_auth: true
-  auth_user: admin
+  auth_user: viewer
   auth_pass:
   port: 554
 
@@ -75,7 +75,10 @@ mp4:
   bitrate: 2048
 
 jpeg:
-  enable: false
+  enable: true
+  width: 640
+  height: 360
+  qfactor: 50
 
 mjpeg:
   enable: false

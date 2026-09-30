@@ -9,6 +9,8 @@
 #                                   writes the settings: an autoconfig.sh on the
 #                                   SD card runs before divinus is due to start
 #
+# These credentials travel to every viewer and sit in plain text in the YAML,
+# so they belong to a user of their own: never root, never root's password.
 # divinus reads its YAML with a simple parser, so the password is limited to
 # characters that need no quoting there.
 
@@ -17,6 +19,20 @@ CONF=/etc/divinus.yaml
 fail() {
 	echo "$*" >&2
 	exit 1
+}
+
+# Whether $1 is root's password, checked against the hash in /etc/shadow
+roots() {
+	hash=$(awk -F: '$1 == "root" { print $2; exit }' /etc/shadow 2>/dev/null)
+	case "$hash" in
+	'$1$'*) method=md5 ;;
+	'$5$'*) method=sha256 ;;
+	'$6$'*) method=sha512 ;;
+	*) return 1 ;;
+	esac
+	salt=${hash#\$*\$}
+	salt=${salt%%\$*}
+	[ "$(mkpasswd -m "$method" "$1" "$salt" 2>/dev/null)" = "$hash" ]
 }
 
 valid() {
@@ -30,7 +46,7 @@ if [ $# -eq 2 ]; then
 	user=$1
 	pass=$(head -n 1 "$2") || fail "Can't read $2"
 else
-	printf "User [admin]: "
+	printf "User [viewer]: "
 	read -r user
 	stty -echo 2> /dev/null
 	printf "Password: "
@@ -43,11 +59,13 @@ else
 	[ "$pass" = "$again" ] || fail "The passwords do not match."
 fi
 
-user=${user:-admin}
+user=${user:-viewer}
 case "$user" in
 *[!A-Za-z0-9._-]* | "") fail "The user may only contain letters, digits, '.', '_' and '-'." ;;
+root) fail "Use a user of its own for streaming, not root." ;;
 esac
 valid "$pass" || fail "The password needs 8 to 63 characters among letters, digits and ._@%+=!-"
+roots "$pass" && fail "Use a password of its own for streaming, not root's."
 
 for key in .system.web_auth .rtsp.auth .onvif.auth; do
 	yaml-cli -i "$CONF" -s "${key}_user" "$user" &&
