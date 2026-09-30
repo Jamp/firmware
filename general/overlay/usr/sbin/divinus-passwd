@@ -1,11 +1,13 @@
 #!/bin/sh
 #
 # Sets the user and password that divinus asks for on its web interface, RTSP
-# and ONVIF, and starts streaming.
+# and ONVIF.
 #
-#   divinus-passwd                  asks for them
+#   divinus-passwd                  asks for them and restarts divinus
 #   divinus-passwd <user> <file>    reads the password from the first line of
-#                                   <file>, so it never shows up in ps
+#                                   <file>, so it never shows up in ps, and only
+#                                   writes the settings: an autoconfig.sh on the
+#                                   SD card runs before divinus is due to start
 #
 # divinus reads its YAML with a simple parser, so the password is limited to
 # characters that need no quoting there.
@@ -53,4 +55,4 @@ for key in .system.web_auth .rtsp.auth .onvif.auth; do
 done
 chmod 600 "$CONF"
 
-/etc/init.d/S95divinus restart
+[ $# -eq 2 ] || /etc/init.d/S95divinus restart
