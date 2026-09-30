@@ -18,7 +18,7 @@ isp:
   antiflicker: 0
 
 osd:
-  enable: false
+  enable: true
   reg0_text: $t
 
 mdns:
