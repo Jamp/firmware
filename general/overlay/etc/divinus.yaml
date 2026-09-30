@@ -23,7 +23,6 @@ osd:
   reg0_posx: 0
   reg0_posy: 0
   reg0_bgcolor: 0x8000
-  reg1_text:
   reg1_posx: -1
   reg1_posy: 0
   reg1_bgcolor: 0x8000
