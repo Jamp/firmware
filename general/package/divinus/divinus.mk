@@ -5,7 +5,7 @@
 ################################################################################
 
 DIVINUS_SITE = $(call github,Jamp,divinus,$(DIVINUS_VERSION))
-DIVINUS_VERSION = ef14c67a193b91ef0c64f5a96784db67501ea03c
+DIVINUS_VERSION = fc270767f42516ad4ae366d40ddf77f2540e0d94
 DIVINUS_LICENSE = MIT
 DIVINUS_LICENSE_FILES = LICENSE
 
