@@ -54,7 +54,7 @@ night_mode:
   ir_cut_pin1: 78
   ir_cut_pin2: 79
   ir_led_pin: 52
-  pin_switch_delay_us: 150
+  pin_switch_delay_us: 1000
   night_gain: 8
   day_gain: 2
   night_hold_s: 15
