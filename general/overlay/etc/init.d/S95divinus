@@ -14,10 +14,26 @@
 
 CONF=/etc/divinus.yaml
 STOPPED=/var/run/divinus.stopped
+SUPERVISOR=/var/run/divinus.supervisor
 
 claimed() {
 	[ -n "$(awk -F: '$1 == "root" { print $2; exit }' /etc/shadow 2>/dev/null)" ] &&
 		[ -n "$(yaml-cli -i "$CONF" -g .rtsp.auth_pass 2>/dev/null)" ]
+}
+
+supervise() {
+	echo $$ > "$SUPERVISOR"
+	# Started from an SSH session, the shell would report a crash on the closed
+	# session and die of SIGPIPE before it could reboot
+	exec < /dev/null > /dev/null 2>&1
+	/usr/bin/divinus 2>&1 | logger -t divinus
+	[ -e "$STOPPED" ] && exit
+	if [ "$(cut -d. -f1 /proc/uptime)" -lt 180 ]; then
+		logger -t divinus "exited right after boot, not streaming"
+	else
+		logger -t divinus "exited unexpectedly, rebooting"
+		reboot
+	fi
 }
 
 start() {
@@ -30,19 +46,16 @@ start() {
 	rm -f "$STOPPED"
 	# musl only honours the zone set in /etc/TZ through the environment
 	export TZ=$(cat /etc/TZ 2>/dev/null)
-	(
-		# Started from an SSH session, the shell would report a crash on the closed
-		# session and die of SIGPIPE before it could reboot
-		exec < /dev/null > /dev/null 2>&1
-		/usr/bin/divinus 2>&1 | logger -t divinus
-		[ -e "$STOPPED" ] && exit
-		if [ "$(cut -d. -f1 /proc/uptime)" -lt 180 ]; then
-			logger -t divinus "exited right after boot, not streaming"
-		else
-			logger -t divinus "exited unexpectedly, rebooting"
-			reboot
-		fi
-	) &
+	# In a session of its own: restarted from "ssh -t" (divinus-passwd), closing
+	# the session kills what is still in it, divinus and this supervisor too.
+	# Return only once the supervisor is out, or logout can beat setsid.
+	rm -f "$SUPERVISOR"
+	setsid "$0" supervise &
+	n=0
+	while [ ! -e "$SUPERVISOR" ] && [ "$n" -lt 50 ]; do
+		sleep 0.1
+		n=$((n + 1))
+	done
 	echo "OK"
 }
 
@@ -71,6 +84,10 @@ case "$1" in
 	restart)
 		stop
 		start
+		;;
+
+	supervise)
+		supervise
 		;;
 
 	*)
